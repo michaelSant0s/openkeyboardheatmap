@@ -1,0 +1,101 @@
+{
+  "name": "openkeyboardheatmap",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source keyboard heatmap – visualize your keystroke patterns",
+  "main": "dist-electron/main/main.js",
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "author": "Michael Santos",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/michaelsant0s/openkeyboardheatmap"
+  },
+  "scripts": {
+    "dev": "electron-rebuild -f -w better-sqlite3-multiple-ciphers && electron-vite dev",
+    "build": "electron-rebuild -f -w better-sqlite3-multiple-ciphers && electron-vite build",
+    "rebuild": "electron-rebuild -f -w better-sqlite3-multiple-ciphers",
+    "icons:generate": "python3 scripts/generate-app-icon.py",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "better-sqlite3-multiple-ciphers": "^12.8.0",
+    "electron-updater": "^6.8.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@electron/rebuild": "^4.0.3",
+    "@types/better-sqlite3": "^7.6.13",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  },
+  "build": {
+    "appId": "com.openkeyboardheatmap.app",
+    "productName": "Open Keyboard Heatmap",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3-multiple-ciphers/build/Release/*.node"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "michaelSant0s",
+        "repo": "openkeyboardheatmap"
+      }
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "icon": "build/icons/icon.png"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icons/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "build/icons/icon.icns"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

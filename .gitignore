@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-electron/
+*.db
+*.db-journal
+*.db-wal
+.openkeyboardheatmap/debug.log
+.codex
