@@ -1,6 +1,6 @@
 # Open Keyboard Heatmap
 
-Open-source keyboard heatmap that visualizes your keystroke patterns. Track which keys you press the most — all data stays local on your machine.
+Open Keyboard Heatmap is a local-first desktop app that records aggregate key usage and turns it into a keyboard heatmap plus a compact typing dashboard. It is built for people who want to see how they actually use their keyboard without sending keystroke data to a server.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
@@ -14,98 +14,127 @@ BTC donations:
 DOGE donations:
 `DASGta7VgHuxUCvDh9v5cfRCFLirjs611B`
 
+## Screenshots
+
+### Keyboard Heatmap
+
+![Keyboard heatmap screenshot](docs/screenshots/keyboard-heatmap.png)
+
+### Stats Dashboard
+
+![Statistics dashboard screenshot](docs/screenshots/stats-dashboard.png)
+
 ## Features
 
-- Real-time keyboard heatmap (white → green gradient)
-- Layout-aware rendering: supports QWERTY, QWERTZ, AZERTY and other system layouts
-- Extended key support: ESC, Enter, Tab, Shift, Ctrl, Alt, Meta, arrows and navigation keys
-- Custom in-app window controls (minimize, maximize, close)
-- GitHub-style activity heatmap for daily typing intensity (last year)
-- Daily and all-time keystroke statistics
-- Settings page with encrypted database backup/import
-- Daily debug logs in `<app-data>/logs/debug-YYYY-MM-DD.log` for troubleshooting
-- Privacy-first: only aggregate daily counts stored (no sequences, no time-of-day)
-- Cross-platform: Windows, macOS, Linux
-- Local SQLite database — nothing leaves your machine
+### Keyboard tab
+
+- Live keyboard heatmap with per-key counts
+- `All Time` and `Today` views
+- Layout-aware labels with support for QWERTY, QWERTZ, AZERTY and other physical layouts
+- Extended key coverage for modifiers, arrows, navigation keys and ISO keys
+- Running totals in the title bar so you can glance at overall activity instantly
+
+### Stats tab
+
+- GitHub-style contribution grid for the last 365 days
+- Total keystrokes, rolling 7-day and 30-day totals
+- Best day, active day count, average per active day
+- Current streak and longest streak
+
+### Settings tab
+
+- Shows database path and active debug log path
+- Opens the data folder and debug log directly from the app
+- Encrypted backup and restore flow for your local database
+
+### Support tab
+
+- Buy Me a Coffee button that opens in your system browser
+- BTC and DOGE QR codes plus copy-to-clipboard actions
+
+### Logging and troubleshooting
+
+- Daily debug logs stored in `<app-data>/logs/debug-YYYY-MM-DD.log`
+- Renderer and main-process actions are logged for capture, maintenance and external-link troubleshooting
+
+### Privacy model
+
+- Only aggregate counts per key and day are stored
+- No key sequences
+- No time-of-day history
+- No remote sync or telemetry
+- Everything stays on your machine
 
 ## Security & Privacy
 
-This app is designed so that **even if someone steals the database, they cannot recover passwords or typed text**:
+This app is designed so that even if someone gets the database file, they still do not get typed text or password reconstruction data.
 
 | Measure | Detail |
 |---|---|
-| **No sequences** | Only aggregate counts per key per day are stored |
-| **No time-of-day** | Timestamps are truncated to `YYYY-MM-DD` |
-| **Randomised inserts** | Database writes are Fisher-Yates shuffled |
-| **Random flush interval** | Buffer is flushed every 5–30 s (random) |
-| **Local only** | Zero network traffic — all data on disk |
+| No sequences | Only aggregate counts per key per day are stored |
+| No time-of-day | Timestamps are truncated to `YYYY-MM-DD` |
+| Randomized inserts | Database writes are Fisher-Yates shuffled |
+| Random flush interval | Buffered writes happen after a randomized 5 to 30 second delay |
+| Local only | No cloud sync, no remote database, no outbound telemetry |
+| Encrypted storage | The SQLite database uses a separate local key file |
 
 ## Prerequisites
 
 ### Linux
+
 ```bash
 sudo apt install libx11-dev libxtst-dev libxt-dev libxinerama-dev \
   libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libxkbfile-dev
 ```
 
-For Linux, this app is designed for global capture (also when minimized).
-It first uses `uiohook` and can fall back to Linux `evdev` device reading.
-If both are blocked (common on locked-down Wayland setups), run under X11 for
-reliable global capture.
-
-Wayland note: there is currently no portal path that behaves like passive
-"capture every key always" keylogging. GlobalShortcuts is shortcut-based, and
-InputCapture is compositor-triggered (e.g. via pointer barriers), not immediate
-always-on capture.
-
-If you require always-on global key capture on Wayland, start the app with
-`sudo` (for development: `sudo -E npm run dev`).
+On Linux the app tries global capture even while minimized. It can use `uiohook` and, when available, Linux `evdev` device access. If you are testing full-device capture on Wayland or locked-down systems, running with elevated privileges may still be necessary.
 
 ### macOS
-Grant **Accessibility** permission to the app (System Preferences → Privacy & Security → Accessibility).
+
+Grant Accessibility permission to the app in System Settings -> Privacy & Security -> Accessibility.
 
 ### Windows
-No extra steps required.
+
+No extra setup is normally required.
 
 ## Development
 
 ```bash
-# Install dependencies
+# install dependencies
 npm install
 
-# Start development
+# start in development
 npm run dev
 
-# Run tests
+# run tests
 npm test
 
-# Build for production
+# build production artifacts
 npm run build
 ```
 
-## Contributing & Feature Requests
+Linux helper scripts:
 
-Feature requests and pull requests are very welcome.
-
-If you want a new feature:
-- open a PR (best path), or
-- open an issue and support development via Buy Me a Coffee, BTC, or DOGE so I can prioritize and implement it faster.
-
-Support is optional and does not change the AGPL license terms.
+- `./scripts/linux-run-built-sudo.sh` builds the latest app and starts the built version with elevated privileges for capture testing
+- `./scripts/linux-build-appimage-and-run-sudo.sh` builds an AppImage workflow for Linux packaging tests
 
 ## Tech Stack
 
 - Electron
 - React
-- Vite + vite-plugin-electron
+- Vite
 - TypeScript
-- SQLite (better-sqlite3)
-- uiohook-napi (cross-platform global key capture)
+- SQLite via `better-sqlite3-multiple-ciphers`
+- `uiohook-napi` for global keyboard capture
 - Vitest
+
+## Contributing
+
+Feature requests and pull requests are welcome. If you want to help prioritize work, opening a PR is the fastest path. Support is optional and does not change the AGPL license terms.
 
 ## License
 
-This project is licensed under the **GNU Affero General Public License v3.0** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 or later. See [LICENSE](LICENSE) for details.
 
 ---
 

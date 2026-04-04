@@ -6,3 +6,4 @@ dist-electron/
 *.db-wal
 .openkeyboardheatmap/debug.log
 .codex
+DEPENDENCY_LICENSE_AUDIT.md

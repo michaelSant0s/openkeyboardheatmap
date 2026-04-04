@@ -44,7 +44,9 @@
     "productName": "Open Keyboard Heatmap",
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "!**/node_modules/argparse{,/**}",
+      "!**/node_modules/js-yaml/bin{,/**}"
     ],
     "asar": true,
     "asarUnpack": [
