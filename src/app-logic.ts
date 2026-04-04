@@ -1,4 +1,5 @@
 import type { DailyStat } from './global'
+import { toLocalIsoDay } from './date-utils'
 
 export interface ContributionCell {
   day: string
@@ -78,7 +79,7 @@ export function buildContributionModel(dailyStats: DailyStat[]): ContributionMod
   const dayMap = new Map<string, number>()
   for (const row of dailyStats) dayMap.set(row.day, row.total)
 
-  const today = parseIsoDay(toIsoDay(new Date()))
+  const today = parseIsoDay(toLocalIsoDay(new Date()))
   const rangeStart = addUtcDays(today, -(CONTRIBUTION_DAYS - 1))
   const gridStart = startOfWeekMonday(rangeStart)
   const gridEnd = endOfWeekMonday(today)
@@ -191,7 +192,7 @@ export function buildStatsSummary(total: number, dailyStats: DailyStat[], dayMap
   const average = activeDays > 0 ? Math.round(total / activeDays) : 0
   const bestDay = dailyStats.reduce<DailyStat | null>((best, row) => (!best || row.total > best.total ? row : best), null)
 
-  const today = parseIsoDay(toIsoDay(new Date()))
+  const today = parseIsoDay(toLocalIsoDay(new Date()))
   return {
     last7: getRollingTotal(dayMap, today, 7),
     last30: getRollingTotal(dayMap, today, 30),

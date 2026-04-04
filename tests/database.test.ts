@@ -2,6 +2,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { toLocalIsoDay } from '../src/date-utils'
 
 vi.mock('better-sqlite3-multiple-ciphers', () => {
   type Row = { keyName: string; day: string; count: number }
@@ -130,7 +131,7 @@ describe('database', () => {
   it('filters by day and computes totals', () => {
     incrementKeyCounts(new Map([['KeyA', 10], ['KeyB', 20]]))
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = toLocalIsoDay(new Date())
     expect(getKeyCounts(today)['KeyA']).toBe(10)
     expect(getTotalKeystrokes()).toBe(30)
   })

@@ -2,6 +2,7 @@ import { uIOhook, type UiohookKeyboardEvent } from 'uiohook-napi'
 import fs from 'fs'
 import { incrementKeyCounts, getKeyCounts } from './database'
 import { SCAN_CODE_TO_KEY_CODE } from '../../src/keycodes'
+import { toLocalIsoDay } from '../../src/date-utils'
 import { logger, errorToMeta } from './logger'
 
 let buffer: Map<string, number> = new Map()
@@ -56,7 +57,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 function getTodayIsoDay(): string {
-  return new Date().toISOString().split('T')[0]
+  return toLocalIsoDay(new Date())
 }
 
 function sumCounts(counts: Record<string, number>): number {

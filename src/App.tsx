@@ -7,8 +7,8 @@ import {
   getContributionLevel,
   getDisplayLabel,
   parseIsoDay,
-  toIsoDay,
 } from './app-logic'
+import { toLocalIsoDay } from './date-utils'
 import btcQrImage from './assets/btc-qr.png'
 import dogeQrImage from './assets/doge-qr.png'
 import './style.css'
@@ -156,7 +156,7 @@ export function App(): JSX.Element {
 
   const refreshAllData = useCallback(async (): Promise<void> => {
     try {
-      const today = toIsoDay(new Date())
+      const today = toLocalIsoDay(new Date())
       const [allTimeCounts, todayCounts, total, stats] = await Promise.all([
         window.api.getKeyCounts(),
         window.api.getKeyCounts(today),

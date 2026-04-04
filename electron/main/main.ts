@@ -21,6 +21,7 @@ import {
   getDatabasePaths,
 } from './database'
 import { startKeylogger, stopKeylogger, type KeyCountsSnapshot } from './keylogger'
+import { toLocalIsoDay } from '../../src/date-utils'
 import { logger, errorToMeta } from './logger'
 
 const VITE_DEV_SERVER_URL = process.env['ELECTRON_RENDERER_URL']
@@ -193,7 +194,7 @@ async function tryOpenExternalUrlAsSudoUser(urlToOpen: string): Promise<boolean>
 }
 
 function getTodayIsoDay(): string {
-  return new Date().toISOString().split('T')[0]
+  return toLocalIsoDay(new Date())
 }
 
 function sumCounts(counts: Record<string, number>): number {

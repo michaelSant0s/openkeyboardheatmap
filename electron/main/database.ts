@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { normalizeStoredKeyName } from '../../src/keycodes'
+import { toLocalIsoDay } from '../../src/date-utils'
 import { logger, errorToMeta } from './logger'
 
 let db: Database.Database | null = null
@@ -96,7 +97,7 @@ export function getDatabasePaths(): DatabasePaths {
  * Only the date (YYYY-MM-DD) is stored — no time-of-day.
  */
 export function incrementKeyCounts(counts: Map<string, number>): void {
-  const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD only
+  const today = toLocalIsoDay(new Date())
 
   try {
     const instance = requireDb()
