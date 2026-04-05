@@ -82,8 +82,9 @@ export const SCAN_CODE_TO_KEY_CODE: Record<number, string> = {
 
   // Bottom row + navigation
   0x2a: 'ShiftLeft',
-  0x0e46: 'IntlBackslash', // uIOhook VC_LESSER_GREATER ('<', '>', '|')
-  0x56: 'IntlBackslash',
+  0x0e46: 'IntlBackslash', // legacy/observed uIOhook variant for ISO 102ND key
+  0x0e56: 'IntlBackslash', // observed uIOhook variant for VC_LESSER_GREATER
+  0x56: 'IntlBackslash', // scan code set 1 for ISO 102ND key
   94: 'IntlBackslash', // Linux/X11 often exposes <LSGT> keycode as 94
   226: 'IntlBackslash', // some stacks expose ISO < > key as 226
   0x2c: 'KeyZ',

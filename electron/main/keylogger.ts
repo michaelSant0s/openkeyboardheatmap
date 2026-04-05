@@ -17,11 +17,15 @@ let liveTodayCounts: Record<string, number> = {}
 let liveTotalKeystrokes = 0
 let liveTodayKeystrokes = 0
 let liveDayKey = ''
-const pressedScanCodes = new Set<number>()
+const pressedKeyNames = new Set<string>()
 const loggedLinuxIntlBackslashFallbackCodes = new Set<number>()
 const loggedIntlBackslashCaptureCodes = new Set<number>()
 const loggedUnmappedLinuxKeyCodes = new Set<number>()
 const MAX_UNMAPPED_LINUX_KEYCODE_LOGS = 25
+// libuiohook's X11 keycode table maps X11 keycode 94 (kernel KEY_102ND, the ISO <> key) to
+// VC_UNDEFINED = 0x0000 instead of VC_LESSER_GREATER = 0x0E46. Adding 0 here lets the
+// Linux-specific fallback in resolveKeyNameForScanCode catch the ISO key on affected systems.
+const LINUX_INTL_BACKSLASH_COMPAT_KEYCODES = new Set([0x56, 0x0e46, 0x0e56, 94, 226, 0])
 
 interface EvdevStreamState {
   stream: fs.ReadStream
@@ -135,10 +139,33 @@ function incrementBuffer(keyName: string): void {
   scheduleRealtimeEmit()
 }
 
+function resolveKeyNameForScanCode(keyCode: number): string | null {
+  const mappedKeyName = SCAN_CODE_TO_KEY_CODE[keyCode]
+  if (mappedKeyName) return mappedKeyName
+
+  if (
+    process.platform === 'linux'
+    && LINUX_INTL_BACKSLASH_COMPAT_KEYCODES.has(keyCode)
+  ) {
+    return 'IntlBackslash'
+  }
+
+  return null
+}
+
 export function recordKeyByCode(keyCode: number): void {
-  const keyName = SCAN_CODE_TO_KEY_CODE[keyCode]
+  const mappedKeyName = SCAN_CODE_TO_KEY_CODE[keyCode]
+  const keyName = resolveKeyNameForScanCode(keyCode)
   if (keyName) {
     incrementBuffer(keyName)
+
+    if (keyName === 'IntlBackslash' && !mappedKeyName && !loggedLinuxIntlBackslashFallbackCodes.has(keyCode)) {
+      logger.info('Applied Linux IntlBackslash compatibility fallback for uIOhook.', {
+        keyCode,
+        mappedAs: 'IntlBackslash',
+      })
+      loggedLinuxIntlBackslashFallbackCodes.add(keyCode)
+    }
 
     if (keyName === 'IntlBackslash' && !loggedIntlBackslashCaptureCodes.has(keyCode)) {
       logger.info('IntlBackslash key event captured.', { keyCode })
@@ -158,33 +185,18 @@ export function recordKeyByCode(keyCode: number): void {
 }
 
 function onKeydown(event: UiohookKeyboardEvent): void {
-  if (pressedScanCodes.has(event.keycode)) return
-  pressedScanCodes.add(event.keycode)
-
-  // Linux/X11 quirks in libuiohook: the ISO 102ND key ("<", ">", "|") can
-  // show up as one of these values depending on stack/session.
-  const linuxIntlBackslashFallbackCodes = new Set([94, 226])
-  const mappedKey = SCAN_CODE_TO_KEY_CODE[event.keycode]
-  if (
-    process.platform === 'linux'
-    && linuxIntlBackslashFallbackCodes.has(event.keycode)
-    && mappedKey !== 'IntlBackslash'
-  ) {
-    incrementBuffer('IntlBackslash')
-    if (!loggedLinuxIntlBackslashFallbackCodes.has(event.keycode)) {
-      logger.info('Applied Linux IntlBackslash compatibility fallback for uIOhook.', {
-        keyCode: event.keycode,
-        mappedAs: 'IntlBackslash',
-      })
-      loggedLinuxIntlBackslashFallbackCodes.add(event.keycode)
-    }
+  const keyName = resolveKeyNameForScanCode(event.keycode)
+  if (keyName) {
+    if (pressedKeyNames.has(keyName)) return
+    pressedKeyNames.add(keyName)
   }
 
   recordKeyByCode(event.keycode)
 }
 
 function onKeyup(event: UiohookKeyboardEvent): void {
-  pressedScanCodes.delete(event.keycode)
+  const keyName = resolveKeyNameForScanCode(event.keycode)
+  if (keyName) pressedKeyNames.delete(keyName)
 }
 
 function shouldPreferLinuxEvdev(): { preferred: boolean; reason: string } {
@@ -400,7 +412,7 @@ export function startKeylogger(
   onSnapshot: (snapshot: KeyCountsSnapshot) => void
 ): KeyloggerStartResult {
   logger.info('Starting keylogger.')
-  pressedScanCodes.clear()
+  pressedKeyNames.clear()
   onSnapshotCallback = onSnapshot
   initializeLiveCountersFromDatabase()
   emitSnapshotNow()
@@ -455,7 +467,7 @@ export function startKeylogger(
 
 export function stopKeylogger(): void {
   logger.info('Stopping keylogger.')
-  pressedScanCodes.clear()
+  pressedKeyNames.clear()
   if (flushTimer) clearTimeout(flushTimer)
   flushTimer = null
   if (realtimeEmitTimer) clearTimeout(realtimeEmitTimer)

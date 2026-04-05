@@ -1,9 +1,11 @@
 node_modules/
 dist/
 dist-electron/
+release-artifacts/
 *.db
 *.db-journal
 *.db-wal
 .openkeyboardheatmap/debug.log
 .codex
 DEPENDENCY_LICENSE_AUDIT.md
+.github/workflows/release-artifacts.yml

@@ -9,6 +9,7 @@ describe('scan code mapping', () => {
     expect(SCAN_CODE_TO_KEY_CODE[0x1c]).toBe('Enter')
     expect(SCAN_CODE_TO_KEY_CODE[0x2a]).toBe('ShiftLeft')
     expect(SCAN_CODE_TO_KEY_CODE[0x0e46]).toBe('IntlBackslash')
+    expect(SCAN_CODE_TO_KEY_CODE[0x0e56]).toBe('IntlBackslash')
     expect(SCAN_CODE_TO_KEY_CODE[94]).toBe('IntlBackslash')
     expect(SCAN_CODE_TO_KEY_CODE[226]).toBe('IntlBackslash')
     expect(SCAN_CODE_TO_KEY_CODE[0x36]).toBe('ShiftRight')

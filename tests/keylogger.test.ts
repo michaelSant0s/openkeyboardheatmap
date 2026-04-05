@@ -171,4 +171,56 @@ describe('keylogger', () => {
 
     randomSpy.mockRestore()
   })
+
+  it('maps uiohook keyCode 0 (VC_UNDEFINED) to IntlBackslash on Linux', () => {
+    if (process.platform !== 'linux') return
+
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const snapshots: Array<{ allTimeCounts: Record<string, number> }> = []
+
+    keylogger.startKeylogger((snapshot) => {
+      snapshots.push(snapshot)
+    })
+
+    // libuiohook maps X11 keycode 94 (ISO <> key, KEY_102ND) to VC_UNDEFINED = 0.
+    // The app must recognise keyCode 0 as IntlBackslash on Linux.
+    keylogger.recordKeyByCode(0)
+
+    vi.advanceTimersByTime(120)
+    expect(snapshots.at(-1)?.allTimeCounts['IntlBackslash']).toBe(1)
+
+    randomSpy.mockRestore()
+  })
+
+  it('handles Linux IntlBackslash keyup/keydown code variants without getting stuck', () => {
+    if (process.platform !== 'linux') return
+
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const snapshots: Array<{ allTimeCounts: Record<string, number> }> = []
+
+    keylogger.startKeylogger((snapshot) => {
+      snapshots.push(snapshot)
+    })
+
+    const onMock = uIOhook.on as unknown as { mock: { calls: any[][] } }
+    const keydownListener = onMock.mock.calls.find((call) => call[0] === 'keydown')?.[1] as
+      | ((event: { keycode: number }) => void)
+      | undefined
+    const keyupListener = onMock.mock.calls.find((call) => call[0] === 'keyup')?.[1] as
+      | ((event: { keycode: number }) => void)
+      | undefined
+
+    expect(typeof keydownListener).toBe('function')
+    expect(typeof keyupListener).toBe('function')
+
+    // Some Linux stacks can report ISO-102ND keydown/keyup with different code variants.
+    keydownListener!({ keycode: 0x0e56 })
+    keyupListener!({ keycode: 0x56 })
+    keydownListener!({ keycode: 0x56 })
+
+    vi.advanceTimersByTime(120)
+    expect(snapshots.at(-1)?.allTimeCounts['IntlBackslash']).toBe(2)
+
+    randomSpy.mockRestore()
+  })
 })

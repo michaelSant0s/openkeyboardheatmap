@@ -14,6 +14,7 @@
   "scripts": {
     "dev": "electron-rebuild -f -w better-sqlite3-multiple-ciphers && electron-vite dev",
     "build": "electron-rebuild -f -w better-sqlite3-multiple-ciphers && electron-vite build",
+    "build:win:exe-only": "node scripts/build-win-exe-only.mjs",
     "rebuild": "electron-rebuild -f -w better-sqlite3-multiple-ciphers",
     "icons:generate": "python3 scripts/generate-app-icon.py",
     "test": "vitest run",
@@ -45,6 +46,12 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
+      "!dist/*.AppImage",
+      "!dist/*.exe",
+      "!dist/*.blockmap",
+      "!dist/latest*.yml",
+      "!dist/*-unpacked{,/**}",
+      "!dist/__appImage-*{,/**}",
       "!**/node_modules/argparse{,/**}",
       "!**/node_modules/js-yaml/bin{,/**}"
     ],
@@ -56,7 +63,8 @@
       {
         "provider": "github",
         "owner": "michaelSant0s",
-        "repo": "openkeyboardheatmap"
+        "repo": "openkeyboardheatmap",
+        "publishAutoUpdate": false
       }
     ],
     "linux": {
@@ -78,9 +86,16 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
         }
       ],
-      "icon": "build/icons/icon.ico"
+      "icon": "build/icons/icon.ico",
+      "signAndEditExecutable": true
     },
     "mac": {
       "target": [
@@ -97,7 +112,11 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icons/icon.ico",
+      "uninstallerIcon": "build/icons/icon.ico",
+      "installerHeaderIcon": "build/icons/icon.ico",
+      "differentialPackage": false
     }
   }
 }
