@@ -17,6 +17,7 @@ let liveTodayCounts: Record<string, number> = {}
 let liveTotalKeystrokes = 0
 let liveTodayKeystrokes = 0
 let liveDayKey = ''
+const pressedScanCodes = new Set<number>()
 const loggedLinuxIntlBackslashFallbackCodes = new Set<number>()
 const loggedIntlBackslashCaptureCodes = new Set<number>()
 const loggedUnmappedLinuxKeyCodes = new Set<number>()
@@ -157,6 +158,9 @@ export function recordKeyByCode(keyCode: number): void {
 }
 
 function onKeydown(event: UiohookKeyboardEvent): void {
+  if (pressedScanCodes.has(event.keycode)) return
+  pressedScanCodes.add(event.keycode)
+
   // Linux/X11 quirks in libuiohook: the ISO 102ND key ("<", ">", "|") can
   // show up as one of these values depending on stack/session.
   const linuxIntlBackslashFallbackCodes = new Set([94, 226])
@@ -177,6 +181,10 @@ function onKeydown(event: UiohookKeyboardEvent): void {
   }
 
   recordKeyByCode(event.keycode)
+}
+
+function onKeyup(event: UiohookKeyboardEvent): void {
+  pressedScanCodes.delete(event.keycode)
 }
 
 function shouldPreferLinuxEvdev(): { preferred: boolean; reason: string } {
@@ -203,12 +211,14 @@ function shouldPreferLinuxEvdev(): { preferred: boolean; reason: string } {
 function attachHookListener(): void {
   if (hookListenerAttached) return
   uIOhook.on('keydown', onKeydown)
+  uIOhook.on('keyup', onKeyup)
   hookListenerAttached = true
 }
 
 function detachHookListener(): void {
   if (!hookListenerAttached) return
   uIOhook.removeListener('keydown', onKeydown)
+  uIOhook.removeListener('keyup', onKeyup)
   hookListenerAttached = false
 }
 
@@ -312,7 +322,8 @@ function handleEvdevChunk(state: EvdevStreamState, chunk: Buffer): void {
     const value = data.readInt32LE(offset + INPUT_EVENT_VALUE_OFFSET)
 
     // EV_KEY (1): value 1 = keydown, 2 = autorepeat.
-    if (type === 1 && (value === 1 || value === 2)) {
+    // We intentionally ignore value=2 so holding a key counts as one press.
+    if (type === 1 && value === 1) {
       recordKeyByCode(code)
     }
 
@@ -389,6 +400,7 @@ export function startKeylogger(
   onSnapshot: (snapshot: KeyCountsSnapshot) => void
 ): KeyloggerStartResult {
   logger.info('Starting keylogger.')
+  pressedScanCodes.clear()
   onSnapshotCallback = onSnapshot
   initializeLiveCountersFromDatabase()
   emitSnapshotNow()
@@ -443,6 +455,7 @@ export function startKeylogger(
 
 export function stopKeylogger(): void {
   logger.info('Stopping keylogger.')
+  pressedScanCodes.clear()
   if (flushTimer) clearTimeout(flushTimer)
   flushTimer = null
   if (realtimeEmitTimer) clearTimeout(realtimeEmitTimer)

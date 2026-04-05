@@ -73,6 +73,46 @@ describe('keylogger', () => {
     randomSpy.mockRestore()
   })
 
+  it('counts repeated keydown events only once until keyup', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const snapshots: Array<{ allTimeCounts: Record<string, number> }> = []
+
+    keylogger.startKeylogger((snapshot) => {
+      snapshots.push(snapshot)
+    })
+
+    const onMock = uIOhook.on as unknown as { mock: { calls: any[][] } }
+    const keydownListener = onMock.mock.calls.find((call) => call[0] === 'keydown')?.[1] as
+      | ((event: { keycode: number }) => void)
+      | undefined
+    const keyupListener = onMock.mock.calls.find((call) => call[0] === 'keyup')?.[1] as
+      | ((event: { keycode: number }) => void)
+      | undefined
+
+    expect(typeof keydownListener).toBe('function')
+    expect(typeof keyupListener).toBe('function')
+
+    keydownListener!({ keycode: 0x1e }) // KeyA
+    keydownListener!({ keycode: 0x1e }) // autorepeat
+    keydownListener!({ keycode: 0x1e }) // autorepeat
+
+    vi.advanceTimersByTime(120)
+    expect(snapshots.at(-1)?.allTimeCounts['KeyA']).toBe(1)
+
+    keyupListener!({ keycode: 0x1e })
+    keydownListener!({ keycode: 0x1e })
+
+    vi.advanceTimersByTime(120)
+    expect(snapshots.at(-1)?.allTimeCounts['KeyA']).toBe(2)
+
+    vi.advanceTimersByTime(5000)
+    expect(incrementKeyCounts).toHaveBeenCalledTimes(1)
+    const flushedMap = incrementKeyCounts.mock.calls[0][0] as Map<string, number>
+    expect(flushedMap.get('KeyA')).toBe(2)
+
+    randomSpy.mockRestore()
+  })
+
   it('ignores unknown scan codes', () => {
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
     keylogger.startKeylogger(() => {})
