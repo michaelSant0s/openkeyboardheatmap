@@ -63,6 +63,9 @@ export function getDisplayLabel(rawLabel: string | undefined, fallbackLabel: str
 
   const normalized = rawLabel.trim()
   if (!normalized) return fallbackLabel
+  if (/^Key[A-Z]$/.test(keyCode) && normalized.length === 1) {
+    return normalized.toLocaleUpperCase()
+  }
   return normalized
 }
 

@@ -33,6 +33,23 @@ describe('keyboard layout', () => {
       'ArrowDown',
       'ArrowLeft',
       'ArrowRight',
+      'NumLock',
+      'NumpadDivide',
+      'NumpadMultiply',
+      'NumpadSubtract',
+      'NumpadAdd',
+      'NumpadEnter',
+      'NumpadDecimal',
+      'Numpad0',
+      'Numpad1',
+      'Numpad2',
+      'Numpad3',
+      'Numpad4',
+      'Numpad5',
+      'Numpad6',
+      'Numpad7',
+      'Numpad8',
+      'Numpad9',
     ]) {
       expect(allKeys.has(keyCode)).toBe(true)
     }

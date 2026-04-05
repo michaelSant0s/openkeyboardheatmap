@@ -33,7 +33,7 @@ describe('app logic date helpers', () => {
 
 describe('app logic labels and levels', () => {
   it('uses Space as fixed label and falls back for empty layout labels', () => {
-    expect(getDisplayLabel('  x  ', '?', 'KeyX')).toBe('x')
+    expect(getDisplayLabel('  x  ', '?', 'KeyX')).toBe('X')
     expect(getDisplayLabel('   ', 'Fallback', 'KeyY')).toBe('Fallback')
     expect(getDisplayLabel(undefined, 'Fallback', 'KeyZ')).toBe('Fallback')
     expect(getDisplayLabel(' ', 'Fallback', 'Space')).toBe('Space')

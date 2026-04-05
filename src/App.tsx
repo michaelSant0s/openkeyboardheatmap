@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ActionResult, CaptureStatus, DailyStat, KeyCountsSnapshot, StorageInfo, WindowStatePayload } from './global'
-import { KEYBOARD_ROWS, getHeatmapColor } from './keyboard-layout'
+import { KEYBOARD_RENDER_ROWS, KEYBOARD_ROWS, getHeatmapColor } from './keyboard-layout'
 import {
   buildContributionModel,
   buildStatsSummary,
@@ -31,26 +31,44 @@ interface NavigatorWithKeyboard extends Navigator {
   keyboard?: KeyboardApiLike
 }
 
-const KEY_WIDTH = 44
-const KEY_GAP = 6
+const KEY_WIDTH = 40
+const KEY_GAP = 4
+const KEY_CLUSTER_GAP = 10
+const NAV_CLUSTER_COLUMNS = 3
+const NUMPAD_CLUSTER_COLUMNS = 4
 const DAILY_STATS_LIMIT = 5000
 const LIVE_STATS_REFRESH_DELAY_MS = 3000
 const BTC_ADDRESS = 'bc1q273jxf4xq87qggcjfw6d8v038rwqyygcsxmw8f'
 const DOGE_ADDRESS = 'DASGta7VgHuxUCvDh9v5cfRCFLirjs611B'
 const COFFEE_URL = 'https://buymeacoffee.com/michaelsant0s'
 const GERMAN_QWERTZ_LABEL_OVERRIDES: Record<string, string> = {
-  Backquote: '^',
+  Backquote: '° ^',
+  Digit1: '! 1',
+  Digit2: '" 2 ²',
+  Digit3: '§ 3 ³',
+  Digit4: '$ 4',
+  Digit5: '% 5',
+  Digit6: '& 6',
+  Digit7: '/ 7 {',
+  Digit8: '( 8 [',
+  Digit9: ') 9 ]',
+  Digit0: '= 0 }',
   KeyY: 'Z',
   KeyZ: 'Y',
-  Minus: 'ß',
-  Equal: '´',
+  Minus: '? ß \\',
+  Equal: '` ´',
+  KeyQ: 'Q @',
+  KeyE: 'E €',
   BracketLeft: 'Ü',
-  BracketRight: '+',
-  Backslash: '#',
+  BracketRight: '* + ~',
+  Backslash: "' #",
   Semicolon: 'Ö',
   Quote: 'Ä',
-  Slash: '-',
-  IntlBackslash: '<',
+  Slash: '- _',
+  IntlBackslash: '> < |',
+  Comma: '; ,',
+  Period: ': .',
+  KeyM: 'M µ',
 }
 
 const dayFormatter = new Intl.DateTimeFormat(undefined, {
@@ -227,7 +245,7 @@ export function App(): JSX.Element {
             if (label) nextLabels[key.keyCode] = label
           }
         }
-        setLayoutLabels({ ...localeFallbackLabels, ...nextLabels })
+        setLayoutLabels({ ...nextLabels, ...localeFallbackLabels })
       } catch (error) {
         if (Object.keys(localeFallbackLabels).length > 0) {
           setLayoutLabels(localeFallbackLabels)
@@ -352,30 +370,64 @@ export function App(): JSX.Element {
     }
   }
 
-  const renderKeyboard = (): JSX.Element => (
-    <div className="keyboard-shell">
-      {KEYBOARD_ROWS.map((row, rowIndex) => (
-        <div key={`row-${rowIndex}`} className="keyboard-row">
-          {row.map((key) => {
-            const count = selectedCounts[key.keyCode] || 0
-            const label = getDisplayLabel(layoutLabels[key.keyCode], key.fallbackLabel, key.keyCode)
-            const width = key.width ? (key.width * KEY_WIDTH + (key.width - 1) * KEY_GAP) : KEY_WIDTH
+  const navClusterWidth = KEY_WIDTH * NAV_CLUSTER_COLUMNS + KEY_GAP * (NAV_CLUSTER_COLUMNS - 1)
+  const numpadClusterWidth = KEY_WIDTH * NUMPAD_CLUSTER_COLUMNS + KEY_GAP * (NUMPAD_CLUSTER_COLUMNS - 1)
 
-            return (
-              <div
-                key={key.keyCode}
-                className="keyboard-key"
-                style={{
-                  width,
-                  backgroundColor: getHeatmapColor(count, heatmapMax),
-                }}
-                title={`${label}: ${count.toLocaleString()} keystrokes`}
-              >
-                <span className="key-label">{label}</span>
-                <span className="key-count">{count.toLocaleString()}</span>
-              </div>
-            )
-          })}
+  const renderKey = (keyCodePrefix: string, key: { keyCode: string; fallbackLabel: string; width?: number }): JSX.Element => {
+    const count = selectedCounts[key.keyCode] || 0
+    const label = getDisplayLabel(layoutLabels[key.keyCode], key.fallbackLabel, key.keyCode)
+    const width = key.width ? (key.width * KEY_WIDTH + (key.width - 1) * KEY_GAP) : KEY_WIDTH
+
+    return (
+      <div
+        key={`${keyCodePrefix}-${key.keyCode}`}
+        className="keyboard-key"
+        style={{
+          width,
+          backgroundColor: getHeatmapColor(count, heatmapMax),
+        }}
+        title={`${label}: ${count.toLocaleString()} keystrokes`}
+      >
+        <span className="key-label">{label}</span>
+        <span className="key-count">{count.toLocaleString()}</span>
+      </div>
+    )
+  }
+
+  const renderKeyboard = (): JSX.Element => (
+    <div
+      className="keyboard-shell"
+      style={{
+        ['--key-gap' as string]: `${KEY_GAP}px`,
+        ['--cluster-gap' as string]: `${KEY_CLUSTER_GAP}px`,
+        ['--nav-cluster-width' as string]: `${navClusterWidth}px`,
+        ['--numpad-cluster-width' as string]: `${numpadClusterWidth}px`,
+      }}
+    >
+      {KEYBOARD_RENDER_ROWS.map((row, rowIndex) => (
+        <div key={`row-${rowIndex}`} className="keyboard-row keyboard-row-grid">
+          <div className="keyboard-cluster keyboard-cluster-main">
+            {row.main.map((key) => renderKey(`main-${rowIndex}`, key))}
+          </div>
+          <div
+            className={[
+              'keyboard-cluster',
+              'keyboard-cluster-nav',
+              row.nav.length === 1 ? 'is-single' : '',
+              row.nav.length === 0 ? 'is-empty' : '',
+            ].filter(Boolean).join(' ')}
+          >
+            {row.nav.map((key) => renderKey(`nav-${rowIndex}`, key))}
+          </div>
+          <div
+            className={[
+              'keyboard-cluster',
+              'keyboard-cluster-numpad',
+              row.numpad.length === 0 ? 'is-empty' : '',
+            ].filter(Boolean).join(' ')}
+          >
+            {row.numpad.map((key) => renderKey(`numpad-${rowIndex}`, key))}
+          </div>
         </div>
       ))}
     </div>
