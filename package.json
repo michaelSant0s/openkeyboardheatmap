@@ -2,7 +2,17 @@
   "name": "openkeyboardheatmap",
   "private": true,
   "version": "0.1.0",
-  "description": "Open-source keyboard heatmap – visualize your keystroke patterns",
+  "description": "Privacy-respecting, local-first keyboard heatmap and typing statistics dashboard for Windows, macOS, and Linux",
+  "keywords": [
+    "keyboard-heatmap",
+    "keystroke-tracker",
+    "typing-statistics",
+    "keyboard-analytics",
+    "privacy-first",
+    "local-first",
+    "whatpulse-alternative",
+    "electron"
+  ],
   "main": "dist-electron/main/main.js",
   "type": "module",
   "license": "AGPL-3.0-or-later",
