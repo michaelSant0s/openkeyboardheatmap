@@ -24,106 +24,77 @@ def lerp_color(start: tuple[int, int, int], end: tuple[int, int, int], t: float)
     )
 
 
-def draw_background(image: Image.Image) -> None:
-    draw = ImageDraw.Draw(image)
-    width, height = image.size
-    top = (31, 41, 60)
-    bottom = (8, 14, 27)
-    for y in range(height):
-        t = y / (height - 1)
-        draw.line([(0, y), (width, y)], fill=(*lerp_color(top, bottom, t), 255))
-
-    glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow)
-    center = (int(width * 0.56), int(height * 0.42))
-    max_radius = int(width * 0.45)
-    for radius in range(max_radius, 0, -8):
-        t = radius / max_radius
-        alpha = int(64 * (1 - t) * (1 - t))
-        glow_draw.ellipse(
-            (
-                center[0] - radius,
-                center[1] - radius,
-                center[0] + radius,
-                center[1] + radius,
-            ),
-            fill=(73, 189, 114, alpha),
-        )
-
-    image.alpha_composite(glow)
-
-
 def rounded_rect(draw: ImageDraw.ImageDraw, xy: tuple[int, int, int, int], radius: int, fill: tuple[int, int, int, int], outline: tuple[int, int, int, int] | None = None, width: int = 1) -> None:
     draw.rounded_rectangle(xy, radius=radius, fill=fill, outline=outline, width=width)
 
 
-def draw_keyboard_icon(image: Image.Image) -> None:
+def draw_icon(image: Image.Image) -> None:
     draw = ImageDraw.Draw(image)
+    width, height = image.size
+    center_x = width // 2
+    center_y = height // 2
+    outer_radius = int(min(width, height) * 0.40)
 
-    # App tile
-    rounded_rect(
-        draw,
-        (70, 70, 954, 954),
-        radius=180,
-        fill=(14, 21, 34, 236),
-        outline=(62, 80, 104, 255),
-        width=6,
-    )
+    # Circular badge base with slight radial depth.
+    for radius in range(outer_radius, 0, -3):
+        t = 1 - (radius / outer_radius)
+        color = lerp_color((49, 55, 63), (62, 69, 78), t)
+        draw.ellipse(
+            (
+                center_x - radius,
+                center_y - radius,
+                center_x + radius,
+                center_y + radius,
+            ),
+            fill=(*color, 255),
+        )
 
-    # Keyboard shell
-    rounded_rect(
-        draw,
-        (170, 230, 854, 790),
-        radius=72,
-        fill=(17, 25, 39, 255),
-        outline=(74, 94, 120, 255),
-        width=4,
-    )
+    key_size = int(width * 0.205)
+    key_gap = int(width * 0.032)
+    key_radius = int(width * 0.032)
+    keys_total = key_size * 2 + key_gap
+    start_x = center_x - (keys_total // 2)
+    start_y = center_y - (keys_total // 2)
 
-    key_colors = [
-        (42, 57, 79),
-        (57, 77, 106),
-        (75, 101, 135),
-        (102, 135, 173),
-        (127, 163, 198),
-        (86, 122, 83),
-        (140, 180, 78),
-        (92, 203, 107),
-        (58, 190, 110),
-    ]
-    key_size = 96
-    gap = 24
-    start_x = 228
-    start_y = 292
+    key_rects: list[tuple[int, int, int, int]] = []
+    for row in range(2):
+        for col in range(2):
+            x0 = start_x + col * (key_size + key_gap)
+            y0 = start_y + row * (key_size + key_gap)
+            key_rects.append((x0, y0, x0 + key_size, y0 + key_size))
 
-    palette_index = 0
-    for row in range(3):
-        for col in range(5):
-            fill = key_colors[min(palette_index, len(key_colors) - 1)]
-            if row < 2:
-                fill = key_colors[min(col + row * 2, len(key_colors) - 1)]
-            if row == 2:
-                fill = key_colors[min(5 + col, len(key_colors) - 1)]
-            x = start_x + col * (key_size + gap)
-            y = start_y + row * (key_size + gap)
-            rounded_rect(
-                draw,
-                (x, y, x + key_size, y + key_size),
-                radius=20,
-                fill=(*fill, 255),
-            )
-            palette_index += 1
+    # Soft key shadows
+    shadows = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadows)
+    for x0, y0, x1, y1 in key_rects:
+        rounded_rect(
+            shadow_draw,
+            (x0, y0 + int(width * 0.006), x1, y1 + int(width * 0.006)),
+            radius=key_radius,
+            fill=(0, 0, 0, 62),
+        )
+    image.alpha_composite(shadows.filter(ImageFilter.GaussianBlur(radius=int(width * 0.008))))
 
-    # Space row
-    rounded_rect(draw, (228, 652, 500, 714), radius=18, fill=(45, 61, 84, 255))
-    rounded_rect(draw, (524, 652, 620, 714), radius=18, fill=(45, 61, 84, 255))
-    rounded_rect(draw, (644, 652, 740, 714), radius=18, fill=(45, 61, 84, 255))
+    key_light = (217, 222, 228, 255)
+    key_green = (117, 185, 130, 255)
+    key_colors = [key_light, key_green, key_light, key_light]
+    for rect, fill in zip(key_rects, key_colors):
+        rounded_rect(draw, rect, radius=key_radius, fill=fill)
 
-    # Subtle gloss
+    # Faint top highlight over badge.
     gloss = Image.new("RGBA", image.size, (0, 0, 0, 0))
     gloss_draw = ImageDraw.Draw(gloss)
-    gloss_draw.ellipse((120, 96, 820, 540), fill=(255, 255, 255, 22))
-    image.alpha_composite(gloss.filter(ImageFilter.GaussianBlur(radius=10)))
+    highlight_radius = int(width * 0.26)
+    gloss_draw.ellipse(
+        (
+            center_x - highlight_radius,
+            center_y - int(width * 0.28),
+            center_x + highlight_radius,
+            center_y,
+        ),
+        fill=(255, 255, 255, 20),
+    )
+    image.alpha_composite(gloss.filter(ImageFilter.GaussianBlur(radius=int(width * 0.02))))
 
 
 def save_sizes(base: Image.Image, outputs: Iterable[tuple[Path, int]]) -> None:
@@ -138,8 +109,7 @@ def main() -> None:
     BUILD_ICONS_DIR.mkdir(parents=True, exist_ok=True)
 
     base = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
-    draw_background(base)
-    draw_keyboard_icon(base)
+    draw_icon(base)
 
     save_sizes(
         base,

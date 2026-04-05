@@ -9,6 +9,7 @@ import {
   parseIsoDay,
 } from './app-logic'
 import { toLocalIsoDay } from './date-utils'
+import appIconImage from './assets/app-icon-64.png'
 import btcQrImage from './assets/btc-qr.png'
 import dogeQrImage from './assets/doge-qr.png'
 import './style.css'
@@ -383,17 +384,27 @@ export function App(): JSX.Element {
   return (
     <div className="app-root">
       <header className="titlebar">
-        <div className="titlebar-drag titlebar-brand">Open Keyboard Heatmap</div>
+        <div className="titlebar-drag titlebar-brand">
+          <img className="titlebar-brand-icon" src={appIconImage} alt="" aria-hidden="true" />
+          <span>Open Keyboard Heatmap</span>
+        </div>
         <div className="titlebar-drag titlebar-center">
           <span>Total: {snapshot.totalKeystrokes.toLocaleString()}</span>
           <span>Today: {snapshot.todayKeystrokes.toLocaleString()}</span>
         </div>
         <div className="window-controls">
-          <button className="window-btn" onClick={() => { void window.api.windowMinimize() }} aria-label="Minimize">—</button>
-          <button className="window-btn" onClick={() => { void window.api.windowMaximizeToggle() }} aria-label="Maximize">
-            {windowState.isMaximized ? '❐' : '□'}
+          <button className="window-btn window-btn-minimize" onClick={() => { void window.api.windowMinimize() }} aria-label="Minimize">
+            <span className="window-icon window-icon-minimize" aria-hidden="true" />
           </button>
-          <button className="window-btn window-btn-close" onClick={() => { void window.api.windowClose() }} aria-label="Close">✕</button>
+          <button className="window-btn window-btn-maximize" onClick={() => { void window.api.windowMaximizeToggle() }} aria-label="Maximize">
+            <span
+              className={`window-icon ${windowState.isMaximized ? 'window-icon-restore' : 'window-icon-maximize'}`}
+              aria-hidden="true"
+            />
+          </button>
+          <button className="window-btn window-btn-close" onClick={() => { void window.api.windowClose() }} aria-label="Close">
+            <span className="window-icon window-icon-close" aria-hidden="true" />
+          </button>
         </div>
       </header>
 
