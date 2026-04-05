@@ -120,11 +120,11 @@ Linux helper scripts:
 
 ## Release builds
 
-- Linux AppImage: `npx electron-builder --linux AppImage --x64 --publish never`
-- Windows (`Setup.exe` + `Portable.exe` only): `npm run build:win:exe-only`
-- Windows output folder (exactly 2 files): `release-artifacts/windows-exe-only/`
-- Combined release folder (`Setup.exe` + `Portable.exe` + `AppImage`): `./scripts/publish-release-artifacts.sh vX.X.X`
-- Automated builds for both targets: GitHub Actions workflow [`.github/workflows/release-artifacts.yml`](.github/workflows/release-artifacts.yml)
+- Linux: `./scripts/release-linux-artifacts.sh vX.X.X`
+- Windows: `powershell -ExecutionPolicy Bypass -File .\scripts\release-windows-artifacts.ps1 vX.X.X`
+- macOS: `./scripts/release-macos-artifacts.sh vX.X.X`
+- Each script is native-only and does not cross-build.
+- Artifacts are written into `release-artifacts/vX.X.X/` with per-platform checksum files.
 
 ## Tech Stack
 

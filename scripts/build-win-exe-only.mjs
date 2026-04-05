@@ -9,6 +9,17 @@ const projectRoot = path.resolve(scriptDir, "..");
 const distDir = path.join(projectRoot, "dist");
 const outDir = path.join(projectRoot, "release-artifacts", "windows-exe-only");
 
+if (process.platform !== "win32") {
+  console.error(
+    [
+      "Windows build aborted: this script must run on Windows.",
+      "Reason: native modules (uiohook-napi / better-sqlite3-multiple-ciphers) become invalid when cross-built on Linux.",
+      "Use a local Windows machine to run: npm run build:win:exe-only",
+    ].join("\n")
+  );
+  process.exit(1);
+}
+
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: projectRoot, stdio: "inherit" });
   if (result.status !== 0) {
