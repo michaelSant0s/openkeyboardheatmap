@@ -1,0 +1,265 @@
+name: CI Build and Auto Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Print runner and tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Runner OS: $RUNNER_OS"
+          echo "Runner Arch: $RUNNER_ARCH"
+          echo "Node: $(node --version)"
+          echo "NPM: $(npm --version)"
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libx11-dev \
+            libxtst-dev \
+            libxt-dev \
+            libxinerama-dev \
+            libx11-xcb-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libxkbfile-dev
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Dump npm logs on test failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          echo "Collecting npm debug logs from ~/.npm/_logs"
+          ls -lah ~/.npm/_logs || true
+          tail -n 400 ~/.npm/_logs/* 2>/dev/null || true
+
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-latest
+            platform: macos
+          - os: windows-latest
+            platform: windows
+
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Print runner and tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Runner OS: $RUNNER_OS"
+          echo "Runner Arch: $RUNNER_ARCH"
+          echo "Node: $(node --version)"
+          echo "NPM: $(npm --version)"
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libx11-dev \
+            libxtst-dev \
+            libxt-dev \
+            libxinerama-dev \
+            libx11-xcb-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libxkbfile-dev
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app bundle
+        run: npm run build
+
+      - name: Show dist directory after app build
+        shell: bash
+        run: |
+          set +e
+          echo "dist directory snapshot"
+          ls -lah dist || true
+          echo "dist-electron directory snapshot"
+          ls -lah dist-electron || true
+
+      - name: Build Linux artifacts
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx electron-builder --linux AppImage --x64 --publish never
+          mkdir -p release-assets
+          cp dist/*.AppImage release-assets/
+          (
+            cd release-assets
+            sha256sum *.AppImage > SHA256SUMS-linux.txt
+          )
+
+      - name: Build macOS artifacts
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx electron-builder --mac dmg --publish never
+          mkdir -p release-assets
+          cp dist/*.dmg release-assets/
+          (
+            cd release-assets
+            shasum -a 256 *.dmg > SHA256SUMS-macos.txt
+          )
+
+      - name: Build Windows artifacts
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npx electron-builder --win --x64 --publish never
+
+          New-Item -ItemType Directory -Path release-assets -Force | Out-Null
+
+          $setup = Get-ChildItem -Path dist -Filter '*Setup*.exe' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          $portable = Get-ChildItem -Path dist -Filter '*.exe' |
+            Where-Object { $_.Name -notmatch 'Setup' } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if (-not $setup -or -not $portable) {
+            throw 'Could not find setup and portable executables in dist/.'
+          }
+
+          Copy-Item -Path $setup.FullName -Destination release-assets -Force
+          Copy-Item -Path $portable.FullName -Destination release-assets -Force
+
+          $hashes = @(
+            Get-FileHash -Algorithm SHA256 (Join-Path release-assets $setup.Name)
+            Get-FileHash -Algorithm SHA256 (Join-Path release-assets $portable.Name)
+          )
+
+          $lines = $hashes | ForEach-Object {
+            "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)"
+          }
+
+          $lines | Set-Content -Path (Join-Path release-assets 'SHA256SUMS-windows.txt') -Encoding utf8
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Dump build diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          echo "Build failed. Collecting diagnostics..."
+          echo "Workspace root"
+          ls -lah
+          echo "dist snapshot"
+          ls -lah dist || true
+          echo "dist-electron snapshot"
+          ls -lah dist-electron || true
+          echo "release-assets snapshot"
+          ls -lah release-assets || true
+          echo "npm debug logs"
+          ls -lah ~/.npm/_logs || true
+          tail -n 400 ~/.npm/_logs/* 2>/dev/null || true
+
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -lah release-assets
+
+      - name: Create prerelease from commit
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ci-${{ github.sha }}
+          name: CI prerelease ${{ github.sha }}
+          prerelease: true
+          generate_release_notes: true
+          make_latest: false
+          overwrite_files: true
+          files: release-assets/**

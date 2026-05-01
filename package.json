@@ -1,7 +1,7 @@
 {
   "name": "openkeyboardheatmap",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Privacy-respecting, local-first keyboard heatmap and typing statistics dashboard for Windows, macOS, and Linux",
   "keywords": [
     "keyboard-heatmap",
